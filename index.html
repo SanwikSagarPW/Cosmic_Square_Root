@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity Web Player | AstroidDestroyer</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;700&display=swap');
+      
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+      }
+      
+      html, body {
+          background: #000; /* Black background for letterboxing */
+          font-family: 'Roboto', sans-serif;
+          overflow: hidden;
+          width: 100%;
+          height: 100%;
+      }
+
+      #page-container {
+          width: 100vw;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0.1,0.1, 0.1, 0.5) 100%);
+      }
+      
+      #controls {
+          background: linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0.1,0.1, 0.1, 0.5) 100%);
+          padding: clamp(8px, 1.5vh, 16px) clamp(15px, 3vw, 30px);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+          border-bottom: 2px solid rgba(0, 0, 0, 1);
+          backdrop-filter: blur(10px);
+          z-index: 10;
+          flex-shrink: 0;
+      }
+      
+      .title-section { display: flex; align-items: center; gap: clamp(8px, 2vw, 20px); }
+      
+      .game-logo {
+          width: clamp(28px, 4vw, 40px);
+          height: clamp(28px, 4vw, 40px);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: clamp(6px, 1vw, 10px);
+          display: flex; align-items: center;
+          justify-content: center;
+          font-size: clamp(18px, 3vw, 24px);
+          color: white;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 1);
+      }
+      
+      .game-title {
+          color: white; font-family: 'Bebas Neue', cursive;
+          font-size: clamp(18px, 3vw, 32px);
+          letter-spacing: clamp(1px, 0.2vw, 3px);
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      }
+      
+      .btn-group { display: flex; gap: clamp(6px, 1.5vw, 15px); align-items: center; flex-wrap: nowrap; }
+      
+      button {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white; border: none;
+          padding: clamp(5px, 1vh, 10px) clamp(8px, 2vw, 18px);
+          border-radius: clamp(15px, 2.5vw, 25px);
+          cursor: pointer;
+          font-size: clamp(10px, 1.5vw, 14px);
+          font-weight: 600; text-transform: uppercase;
+          letter-spacing: clamp(0.3px, 0.08vw, 1px);
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          display: flex; align-items: center;
+          white-space: nowrap;
+      }
+      
+      button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+      
+      .btn-secondary {
+          background: rgba(255, 255, 255, 0.1);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+      
+      .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+      .icon { font-size: clamp(10px, 1.5vw, 16px); margin-right: clamp(3px, 0.8vw, 8px); }
+
+      #unity-container {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      #unity-canvas {
+        background: #000;
+      }
+
+      #page-container:fullscreen #controls {
+          display: none;
+      }
+
+      #loading-overlay {
+          position: fixed; top: 0; left: 0;
+          width: 100%; height: 100%;
+          background: rgba(0, 0, 0, 0.8); color: white;
+          display: flex; justify-content: center; align-items: center;
+          font-family: Arial, sans-serif; font-size: 2em; z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="page-container">
+      <div id="controls">
+          <div class="title-section">
+              <div class="game-logo">🚀</div>
+              <h1 class="game-title">AstroidDestroyer</h1>
+          </div>
+          <div class="btn-group">
+              <button id="fullscreen-button" onclick="toggleFullscreen()">
+                  <span class="icon">⛶</span><span>Fullscreen</span>
+              </button>
+              <button class="btn-secondary" onclick="restartGame()">
+                  <span class="icon">🔄</span><span>Restart</span>
+              </button>
+          </div>
+      </div>
+
+      <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+      </div>
+    </div>
+
+    <div id="loading-overlay">
+      <div id="loading-text">Loading... 0%</div>
+    </div>
+    
+    <script>
+      var pageContainer = document.querySelector("#page-container");
+      var unityContainer = document.querySelector("#unity-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingOverlay = document.querySelector("#loading-overlay");
+      var loadingText = document.querySelector("#loading-text");
+
+      function toggleFullscreen() {
+          if (!document.fullscreenElement) {
+              pageContainer.requestFullscreen().catch(err => {
+                  alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+              });
+          } else {
+              document.exitFullscreen();
+          }
+      }
+
+      function restartGame() {
+          location.reload();
+      }
+
+      // --- [FINAL UNIVERSAL DYNAMIC] SCALING LOGIC ---
+      function applyLetterboxing() {
+          // Use the reliable CSS media query to check orientation.
+          const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+          const targetAspectRatio = isPortrait ? (9 / 16) : (16 / 9);
+
+          let containerWidth = unityContainer.offsetWidth;
+          let containerHeight = unityContainer.offsetHeight;
+          let containerAspectRatio = containerWidth / containerHeight;
+          
+          let newWidth, newHeight;
+          
+          if (containerAspectRatio > targetAspectRatio) {
+              newHeight = containerHeight;
+              newWidth = newHeight * targetAspectRatio;
+          } else {
+              newWidth = containerWidth;
+              newHeight = newWidth / targetAspectRatio;
+          }
+
+          // Round the final CSS size to prevent resize feedback loops.
+          const finalWidth = Math.round(newWidth);
+          const finalHeight = Math.round(newHeight);
+          
+          canvas.style.width = finalWidth + 'px';
+          canvas.style.height = finalHeight + 'px';
+
+          // Apply a DYNAMIC internal resolution for ALL devices.
+          // This ensures sharpness and correct scaling on any screen.
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.round(finalWidth * dpr);
+          canvas.height = Math.round(finalHeight * dpr);
+      }
+
+      window.addEventListener('resize', applyLetterboxing);
+      window.addEventListener('orientationchange', applyLetterboxing);
+
+      function unityShowBanner(msg, type) {
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        div.style.position = 'absolute';
+        div.style.top = '10px';
+        div.style.left = '10px';
+        div.style.padding = '10px';
+        div.style.color = 'white';
+        if (type == 'error') {
+            div.style.background = 'red';
+        } else if (type == 'warning') {
+            div.style.background = 'yellow';
+            div.style.color = 'black';
+        } else {
+            div.style.background = 'rgba(0,0,0,0.5)';
+        }
+        pageContainer.appendChild(div);
+        if (type != 'error') {
+          setTimeout(function() {
+            pageContainer.removeChild(div);
+          }, 5000);
+        }
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Asteroid_destroyer.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Asteroid_destroyer.data",
+        frameworkUrl: buildUrl + "/Asteroid_destroyer.framework.js",
+        codeUrl: buildUrl + "/Asteroid_destroyer.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "AstroidDestroyer",
+        productVersion: "1.1",
+        showBanner: unityShowBanner,
+      };
+
+      var meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      document.getElementsByTagName('head')[0].appendChild(meta);
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          loadingText.innerHTML = `Loading... ${Math.round(progress * 100)}%`;
+        }).then((unityInstance) => {
+          loadingOverlay.style.display = 'none';
+        }).catch((message) => {
+          alert(message);
+        });
+      };
+      
+      document.addEventListener('fullscreenchange', () => {
+          const fullscreenButton = document.getElementById('fullscreen-button');
+          if (document.fullscreenElement) {
+              fullscreenButton.innerHTML = '<span class="icon">❎</span><span>Exit</span>';
+          } else {
+              fullscreenButton.innerHTML = '<span class="icon">⛶</span><span>Fullscreen</span>';
+          }
+          setTimeout(applyLetterboxing, 150); 
+      });
+
+      applyLetterboxing(); 
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
