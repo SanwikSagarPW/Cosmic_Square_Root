@@ -31,16 +31,7 @@
       }
       
       #controls {
-          background: linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0.1,0.1, 0.1, 0.5) 100%);
-          padding: clamp(8px, 1.5vh, 16px) clamp(15px, 3vw, 30px);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-          border-bottom: 2px solid rgba(0, 0, 0, 1);
-          backdrop-filter: blur(10px);
-          z-index: 10;
-          flex-shrink: 0;
+          display: none;
       }
       
       .title-section { display: flex; align-items: center; gap: clamp(8px, 2vw, 20px); }
@@ -107,10 +98,6 @@
         background: #000;
       }
 
-      #page-container:fullscreen #controls {
-          display: none;
-      }
-
       #loading-overlay {
           position: fixed; top: 0; left: 0;
           width: 100%; height: 100%;
@@ -125,7 +112,7 @@
       <div id="controls">
           <div class="title-section">
               <div class="game-logo">🚀</div>
-              <h1 class="game-title">Cosmic Square Root</h1>
+              <h1 class="game-title">Cosmic Multiplication</h1>
           </div>
           <div class="btn-group">
               <button id="fullscreen-button" onclick="toggleFullscreen()">
@@ -259,13 +246,17 @@
         });
       };
       
-      document.addEventListener('fullscreenchange', () => {
-          const fullscreenButton = document.getElementById('fullscreen-button');
-          if (document.fullscreenElement) {
-              fullscreenButton.innerHTML = '<span class="icon">❎</span><span>Exit</span>';
-          } else {
-              fullscreenButton.innerHTML = '<span class="icon">⛶</span><span>Fullscreen</span>';
+      // Auto-enter fullscreen on page load
+      document.addEventListener('click', function enterFullscreen() {
+          if (!document.fullscreenElement) {
+              pageContainer.requestFullscreen().catch(err => {
+                  console.log('Fullscreen request failed:', err);
+              });
           }
+          document.removeEventListener('click', enterFullscreen);
+      }, { once: true });
+
+      document.addEventListener('fullscreenchange', () => {
           setTimeout(applyLetterboxing, 150); 
       });
 
