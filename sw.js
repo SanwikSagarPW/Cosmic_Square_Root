@@ -1,9 +1,9 @@
-const CACHE_NAME = 'cosmic-square-root-v1';
+const CACHE_NAME = 'cosmic-square-root-v2';
 const BUILD_FILES = [
   'Build/Asteroid_destroyer.loader.js',
   'Build/Asteroid_destroyer.framework.js',
-  'Build/Asteroid_destroyer.data',
-  'Build/Asteroid_destroyer.wasm',
+  'Build/Asteroid_destroyer.data.gz',
+  'Build/Asteroid_destroyer.wasm.gz',
 ];
 
 self.addEventListener('install', (event) => {
@@ -24,7 +24,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  const isBuildFile = BUILD_FILES.some((f) => url.pathname.endsWith(f.replace('Build/', '/Build/')));
+  const isBuildFile = BUILD_FILES.some((f) => url.pathname.endsWith(f.replace('Build', 'Build')));
 
   if (isBuildFile) {
     event.respondWith(

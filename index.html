@@ -12,11 +12,11 @@
     <!-- Non-blocking async font load (replaces the render-blocking @import) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;700&display=swap"></noscript>
-    <!-- Preload Unity build files so downloads start immediately -->
+    <!-- Preload compressed build files so downloads start immediately -->
     <link rel="preload" href="Build/Asteroid_destroyer.loader.js" as="script">
     <link rel="preload" href="Build/Asteroid_destroyer.framework.js" as="script">
-    <link rel="preload" href="Build/Asteroid_destroyer.data" as="fetch" crossorigin>
-    <link rel="preload" href="Build/Asteroid_destroyer.wasm" as="fetch" crossorigin>
+    <link rel="preload" href="Build/Asteroid_destroyer.data.gz" as="fetch" crossorigin>
+    <link rel="preload" href="Build/Asteroid_destroyer.wasm.gz" as="fetch" crossorigin>
     <style>
       * {
           margin: 0;
@@ -148,6 +148,71 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
+
+      // ── Gzip decompression for first-visit speed ──────────────────────────
+      // The .data and .wasm files are pre-gzipped (9 MB each vs 17/31 MB raw).
+      // DecompressionStream is supported in Chrome 80+, Firefox 113+, Safari 16.4+.
+      // Decompressed sizes are known ahead of time for accurate progress reporting.
+      var GZ_SIZES = {
+        'Asteroid_destroyer.data': 18200529,
+        'Asteroid_destroyer.wasm': 32592754
+      };
+
+      async function decompressGzip(buffer) {
+        var ds = new DecompressionStream('gzip');
+        var writer = ds.writable.getWriter();
+        writer.write(buffer);
+        writer.close();
+        var reader = ds.readable.getReader();
+        var chunks = [], total = 0;
+        while (true) {
+          var result = await reader.read();
+          if (result.done) break;
+          chunks.push(result.value);
+          total += result.value.length;
+        }
+        var out = new Uint8Array(total), offset = 0;
+        for (var i = 0; i < chunks.length; i++) { out.set(chunks[i], offset); offset += chunks[i].length; }
+        return out.buffer;
+      }
+
+      if (typeof DecompressionStream !== 'undefined') {
+        var _fetch = window.fetch.bind(window);
+        window.fetch = async function(url, opts) {
+          var urlStr = (typeof url === 'string') ? url : (url.url || '');
+          var match = urlStr.match(/\/(Asteroid_destroyer\.(data|wasm))(\?|$)/);
+          if (match) {
+            var filename = match[1];
+            var gzUrl = urlStr.replace(filename, filename + '.gz');
+            var resp = await _fetch(gzUrl, opts);
+            if (resp.ok) {
+              var compressed = await resp.arrayBuffer();
+              var decompressed = await decompressGzip(new Uint8Array(compressed));
+              var ct = filename.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream';
+              return new Response(decompressed, {
+                status: 200,
+                headers: {
+                  'Content-Type': ct,
+                  'Content-Length': String(GZ_SIZES[filename] || decompressed.byteLength)
+                }
+              });
+            }
+          }
+          return _fetch(url, opts);
+        };
+
+        // Fallback: if instantiateStreaming fails (e.g. Content-Type mismatch), use instantiate
+        var _iStreaming = WebAssembly.instantiateStreaming;
+        WebAssembly.instantiateStreaming = async function(responsePromise, imports) {
+          try {
+            return await _iStreaming(responsePromise, imports);
+          } catch(e) {
+            var buf = await (await responsePromise).arrayBuffer();
+            return WebAssembly.instantiate(buf, imports);
+          }
+        };
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       var pageContainer = document.querySelector("#page-container");
       var unityContainer = document.querySelector("#unity-container");
