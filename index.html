@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
-    <title>Unity Web Player | AstroidDestroyer</title>
+    <title>Cosmic Square Root</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <!-- Preconnect so the font handshake happens in parallel with HTML parsing -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -117,13 +117,105 @@
           font-family: Arial, sans-serif; font-size: 2em; z-index: 99;
       }
     </style>
+    <script>
+      /* ─── Level-Wise Analytics Bridge ─── */
+      (function () {
+        var GAME_ID = 'cosmic-square-root';
+
+        function generateRunId() {
+          return 'run-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        var currentRunId = generateRunId();
+        var sessionName = (new URLSearchParams(window.location.search).get('sessionName')) ||
+                          ('Session_' + Date.now());
+
+        function parseLevelNumber(levelId, fallbackIdx) {
+          var m = String(levelId || '').match(/(\d+)/);
+          return m ? parseInt(m[1], 10) : (fallbackIdx + 1);
+        }
+
+        function cleanLevel(raw, levelNumber) {
+          return {
+            levelNumber: levelNumber,
+            levelId: raw.levelId || String(levelNumber),
+            successful: !!raw.successful,
+            timeTaken: raw.timeTaken || 0,
+            xpEarned: raw.xpEarned || 0,
+            tasks: raw.tasks || []
+          };
+        }
+
+        function dispatch(payload) {
+          if (window.__rnwv_real && typeof window.__rnwv_real.postMessage === 'function') {
+            try { window.__rnwv_real.postMessage(JSON.stringify(payload)); } catch (e) {}
+          }
+          try { window.parent.postMessage(payload, window.__analyticsParentOrigin || '*'); } catch (e) {}
+          try {
+            if (window.myJsAnalytics && typeof window.myJsAnalytics.trackGameSession === 'function') {
+              window.myJsAnalytics.trackGameSession(payload);
+            }
+          } catch (e) {}
+        }
+
+        function transformAndDispatch(legacy) {
+          var levels = (legacy.diagnostics && legacy.diagnostics.levels) || [];
+          if (!levels.length) { dispatch(legacy); return; }
+
+          var runHighest = 0;
+          levels.forEach(function (raw, idx) {
+            var levelNumber = parseLevelNumber(raw.levelId, idx);
+            var levelObj    = cleanLevel(raw, levelNumber);
+            runHighest      = Math.max(runHighest, levelNumber);
+
+            dispatch({
+              gameId:             GAME_ID,
+              name:               legacy.name || sessionName,
+              runId:              currentRunId,
+              highestLevelPlayed: runHighest,
+              xpEarned:           levelObj.xpEarned,
+              xpEarnedTotal:      levelObj.xpEarned,
+              level:              levelObj,
+              diagnostics:        { levels: [levelObj] },
+              rawData:            legacy.rawData || []
+            });
+          });
+        }
+
+        window.__rnwv_real = window.ReactNativeWebView || null;
+        window.ReactNativeWebView = {
+          postMessage: function (data) {
+            try {
+              var parsed = typeof data === 'string' ? JSON.parse(data) : data;
+              transformAndDispatch(parsed);
+            } catch (e) {
+              console.error('[AnalyticsBridge] Failed to process payload:', e);
+              if (window.__rnwv_real) window.__rnwv_real.postMessage(data);
+            }
+          }
+        };
+
+        window.addEventListener('message', function (ev) {
+          try {
+            var msg = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
+            if (!msg || msg.type !== 'ANALYTICS_CONFIG') return;
+            if (msg.parentOrigin) window.__analyticsParentOrigin = msg.parentOrigin;
+            if (msg.runId)        currentRunId  = msg.runId;
+            if (msg.sessionName)  sessionName   = msg.sessionName;
+            if (msg.rnwvAvailable) window.__rnwv_real = window.ReactNativeWebView;
+          } catch (e) {}
+        });
+
+        window.__newAnalyticsRun = function () { currentRunId = generateRunId(); };
+      })();
+    </script>
   </head>
   <body>
     <div id="page-container">
       <div id="controls">
           <div class="title-section">
               <div class="game-logo">🚀</div>
-              <h1 class="game-title">Cosmic Multiplication</h1>
+              <h1 class="game-title">Cosmic Square Root</h1>
           </div>
           <div class="btn-group">
               <button id="fullscreen-button" onclick="toggleFullscreen()">
@@ -155,8 +247,8 @@
       // DecompressionStream is supported in Chrome 80+, Firefox 113+, Safari 16.4+.
       // Decompressed sizes are known ahead of time for accurate progress reporting.
       var GZ_SIZES = {
-        'Asteroid_destroyer.data': 18512391,
-        'Asteroid_destroyer.wasm': 32592754,
+        'Asteroid_destroyer.data': 18512283,
+        'Asteroid_destroyer.wasm': 32592346,
         'Asteroid_destroyer.framework.js': 342353
       };
 
