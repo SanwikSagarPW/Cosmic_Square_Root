@@ -1,7 +1,7 @@
-const CACHE_NAME = 'cosmic-square-root-v2';
+const CACHE_NAME = 'cosmic-square-root-v3';
 const BUILD_FILES = [
   'Build/Asteroid_destroyer.loader.js',
-  'Build/Asteroid_destroyer.framework.js',
+  'Build/Asteroid_destroyer.framework.js.gz',
   'Build/Asteroid_destroyer.data.gz',
   'Build/Asteroid_destroyer.wasm.gz',
 ];

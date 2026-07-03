@@ -15,6 +15,7 @@
     <!-- Preload compressed build files so downloads start immediately -->
     <link rel="preload" href="Build/Asteroid_destroyer.loader.js" as="script">
     <link rel="preload" href="Build/Asteroid_destroyer.framework.js" as="script">
+    <link rel="preload" href="Build/Asteroid_destroyer.framework.js.gz" as="fetch" crossorigin>
     <link rel="preload" href="Build/Asteroid_destroyer.data.gz" as="fetch" crossorigin>
     <link rel="preload" href="Build/Asteroid_destroyer.wasm.gz" as="fetch" crossorigin>
     <style>
@@ -154,8 +155,9 @@
       // DecompressionStream is supported in Chrome 80+, Firefox 113+, Safari 16.4+.
       // Decompressed sizes are known ahead of time for accurate progress reporting.
       var GZ_SIZES = {
-        'Asteroid_destroyer.data': 18200529,
-        'Asteroid_destroyer.wasm': 32592754
+        'Asteroid_destroyer.data': 18512391,
+        'Asteroid_destroyer.wasm': 32592754,
+        'Asteroid_destroyer.framework.js': 342353
       };
 
       async function decompressGzip(buffer) {
@@ -180,7 +182,7 @@
         var _fetch = window.fetch.bind(window);
         window.fetch = async function(url, opts) {
           var urlStr = (typeof url === 'string') ? url : (url.url || '');
-          var match = urlStr.match(/\/(Asteroid_destroyer\.(data|wasm))(\?|$)/);
+          var match = urlStr.match(/\/(Asteroid_destroyer\.(data|wasm|framework\.js))(\?|$)/);
           if (match) {
             var filename = match[1];
             var gzUrl = urlStr.replace(filename, filename + '.gz');
@@ -188,7 +190,7 @@
             if (resp.ok) {
               var compressed = await resp.arrayBuffer();
               var decompressed = await decompressGzip(new Uint8Array(compressed));
-              var ct = filename.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream';
+              var ct = filename.endsWith('.wasm') ? 'application/wasm' : filename.endsWith('.js') ? 'application/javascript' : 'application/octet-stream';
               return new Response(decompressed, {
                 status: 200,
                 headers: {
