@@ -15,7 +15,7 @@
     <!-- Preload compressed build files so downloads start immediately -->
     <link rel="preload" href="Build/Asteroid_destroyer.loader.js" as="script">
     <link rel="preload" href="Build/Asteroid_destroyer.framework.js" as="script">
-    <link rel="preload" href="Build/Asteroid_destroyer.framework.js.gz" as="fetch" crossorigin>
+    <link rel="preload" href="Build/Asteroid_destroyer.framework.js" as="script">
     <link rel="preload" href="Build/Asteroid_destroyer.data.gz" as="fetch" crossorigin>
     <link rel="preload" href="Build/Asteroid_destroyer.wasm.gz" as="fetch" crossorigin>
     <style>
@@ -274,7 +274,7 @@
         var _fetch = window.fetch.bind(window);
         window.fetch = async function(url, opts) {
           var urlStr = (typeof url === 'string') ? url : (url.url || '');
-          var match = urlStr.match(/\/(Asteroid_destroyer\.(data|wasm|framework\.js))(\?|$)/);
+          var match = urlStr.match(/\/(Asteroid_destroyer\.(data|wasm))(\?|$)/);
           if (match) {
             var filename = match[1];
             var gzUrl = urlStr.replace(filename, filename + '.gz');
