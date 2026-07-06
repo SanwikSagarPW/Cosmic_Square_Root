@@ -27,6 +27,16 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Remove unused and uncompressed build files
+        run: |
+          # Remove uncompressed files — we serve .gz versions instead
+          rm -f Build/Asteroid_destroyer.data
+          rm -f Build/Asteroid_destroyer.wasm
+          rm -f Build/Asteroid_destroyer.framework.js
+          # Remove old unused build variants
+          rm -f Build/Cosmic_Ratio.*
+          rm -f Build/Cosmic_Square_Root.*
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
